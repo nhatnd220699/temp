@@ -2,24 +2,8 @@
 <html lang="en">
     <head>
         <meta charset="UTF-8" />
-        <title>Pagination with Jump</title>
+        <title>Pagination Auto</title>
         <style>
-            .pagination button.active {
-                font-weight: bold;
-                background: #007bff;
-                color: #fff;
-            }
-            table {
-                border-collapse: collapse;
-                width: 100%;
-                margin-top: 10px;
-            }
-            td,
-            th {
-                border: 1px solid #ddd;
-                padding: 6px;
-            }
-
             .pagination {
                 display: flex;
                 gap: 5px;
@@ -34,6 +18,7 @@
                 background: #fff;
             }
             .pagination button.active {
+                font-weight: bold;
                 background: #007bff;
                 color: #fff;
             }
@@ -46,59 +31,127 @@
                 padding: 4px;
                 text-align: center;
             }
+            table {
+                border-collapse: collapse;
+                width: 100%;
+                margin-top: 10px;
+            }
+            td,
+            th {
+                border: 1px solid #ddd;
+                padding: 6px;
+            }
         </style>
     </head>
     <body>
         <div>
-            <table border="1">
-                <tbody id="data-container"></tbody>
+            <table id="myTable">
+                <thead>
+                    <tr>
+                        <th>No.</th>
+                        <th>Name</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
             </table>
-            <div id="pagination"></div>
+        </div>
+
+        <input type="text" id="searchBox" />
+        <div>
+            <table id="myTable1">
+                <thead>
+                    <tr>
+                        <th>No.</th>
+                        <th>Name</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
         </div>
 
         <script>
             class Pagination {
                 constructor({
-                    mode = 'front', // "front" | "back"
+                    mode = "front", // "front" | "back"
                     data = [],
                     pageSize = 5,
                     totalItems = null,
                     fetchData = null,
                     renderRow,
-                    renderContainer,
-                    paginationContainer,
+                    tableId,
+                    showJumpInput,
+                    searchInput = null,
                 }) {
-                    this.mode = mode;
+                    this.mode = mode.toLowerCase().trim();
                     this.data = data;
+                    this.cacheData = data;
                     this.pageSize = pageSize;
                     this.totalItems = totalItems || data.length;
                     this.fetchData = fetchData;
                     this.renderRow = renderRow;
-                    this.renderContainer = document.querySelector(renderContainer);
-                    this.paginationContainer = document.querySelector(paginationContainer);
+                    this.showJumpInput = showJumpInput;
+                    this.searchInput = searchInput;
+
+                    // lấy table và tbody
+                    this.table = document.getElementById(tableId);
+                    if (!this.table) throw new Error(`Table with id "${tableId}" not found`);
+                    this.renderContainer = this.table.querySelector("tbody");
+                    if (!this.renderContainer) {
+                        this.renderContainer = document.createElement("tbody");
+                        this.table.appendChild(this.renderContainer);
+                    }
+
+                    // tạo pagination container ngay sau table
+                    this.paginationContainer = document.createElement("div");
+                    this.paginationContainer.classList.add("pagination");
+                    this.table.parentNode.appendChild(this.paginationContainer);
 
                     this.currentPage = 1;
-                    this.totalPages = Math.ceil(this.totalItems / this.pageSize);
+                    this.totalPages = Math.max(1, Math.ceil(this.totalItems / this.pageSize));
+
+                    // Gắn search input nếu có
+                    if (this.mode === "front" && this.searchInput) {
+                        const inputEl = document.querySelector(this.searchInput);
+                        if (inputEl) {
+                            inputEl.addEventListener("input", (e) => {
+                                console.log(this.data);
+                                const keyword = e.target.value.toLowerCase();
+                                if (keyword) {
+                                    this.data = this.data.filter((item) => item.name.toLowerCase().indexOf(keyword) > -1);
+                                } else {
+                                    this.data = this.cacheData;
+                                }
+
+                                this.totalItems = this.data.length;
+                                this.totalPages = Math.max(1, Math.ceil(this.totalItems / this.pageSize));
+
+                                this.loadPage(1);
+                            });
+                        }
+                    }
 
                     this.loadPage(1);
                 }
 
                 async loadPage(page) {
-                    // xử lý ngoại lệ
                     if (isNaN(page) || page < 1) page = 1;
                     if (page > this.totalPages) page = this.totalPages;
 
                     this.currentPage = page;
 
                     let items = [];
-                    if (this.mode === 'front') {
-                        const start = (page - 1) * this.pageSize;
-                        items = this.data.slice(start, start + this.pageSize);
-                    } else if (this.mode === 'back' && typeof this.fetchData === 'function') {
-                        const res = await this.fetchData(page, this.pageSize);
-                        items = res.items;
-                        this.totalItems = res.total;
-                        this.totalPages = Math.ceil(this.totalItems / this.pageSize);
+                    try {
+                        if (this.mode === "front") {
+                            const start = (page - 1) * this.pageSize;
+                            items = this.data.slice(start, start + this.pageSize);
+                        } else if (this.mode === "back" && typeof this.fetchData === "function") {
+                            const res = await this.fetchData(page, this.pageSize);
+                            items = res.items || [];
+                            this.totalItems = res.total || items.length;
+                            this.totalPages = Math.max(1, Math.ceil(this.totalItems / this.pageSize));
+                        }
+                    } catch (err) {
+                        console.error("Load page error:", err);
                     }
 
                     this.renderData(items);
@@ -107,28 +160,39 @@
 
                 renderData(items) {
                     if (!this.renderRow) return;
-                    this.renderContainer.innerHTML = '';
-                    items.forEach((item) => {
-                        this.renderContainer.insertAdjacentHTML('beforeend', this.renderRow(item));
-                    });
+                    this.renderContainer.innerHTML = "";
+
+                    if (items.length > 0) {
+                        const frag = document.createDocumentFragment();
+                        items.forEach((item) => {
+                            const row = document.createElement("tr");
+                            row.innerHTML = this.renderRow(item);
+                            frag.appendChild(row);
+                        });
+                        this.renderContainer.appendChild(frag);
+                    } else {
+                        this.renderContainer.innerHTML = `<tr><td colspan="50">No data</td></tr>`;
+                    }
                 }
 
                 renderPagination() {
-                    this.paginationContainer.innerHTML = '';
+                    this.paginationContainer.innerHTML = "";
+                    if (this.mode === "front" && this.data.length <= 0) return;
+                    else if (this.mode === "back" && this.fetchData.length <= 0) return;
 
                     const createButton = (label, page, disabled = false, active = false) => {
-                        const btn = document.createElement('button');
+                        const btn = document.createElement("button");
                         btn.textContent = label;
                         btn.disabled = disabled;
-                        if (active) btn.classList.add('active');
-                        btn.addEventListener('click', () => this.loadPage(page));
+                        if (active) btn.classList.add("active");
+                        btn.addEventListener("click", () => this.loadPage(page));
                         return btn;
                     };
 
                     // Prev
-                    this.paginationContainer.appendChild(createButton('Prev', this.currentPage - 1, this.currentPage === 1));
+                    this.paginationContainer.appendChild(createButton("Prev", this.currentPage - 1, this.currentPage === 1));
 
-                    // Pages with "..."
+                    // Page numbers
                     const maxVisible = 5;
                     let start = Math.max(1, this.currentPage - 2);
                     let end = Math.min(this.totalPages, start + maxVisible - 1);
@@ -138,10 +202,8 @@
                     }
 
                     if (start > 1) {
-                        this.paginationContainer.appendChild(createButton('1', 1));
-                        if (start > 2) {
-                            this.paginationContainer.appendChild(this.createEllipsis());
-                        }
+                        this.paginationContainer.appendChild(createButton("1", 1));
+                        if (start > 2) this.paginationContainer.appendChild(this.createEllipsis());
                     }
 
                     for (let i = start; i <= end; i++) {
@@ -156,64 +218,68 @@
                     }
 
                     // Next
-                    this.paginationContainer.appendChild(createButton('Next', this.currentPage + 1, this.currentPage === this.totalPages));
+                    this.paginationContainer.appendChild(createButton("Next", this.currentPage + 1, this.currentPage === this.totalPages));
 
-                    // Jump to page
-                    const input = document.createElement('input');
-                    input.type = 'number';
+                    // Jump input
+                    if (this.createJumpInput()) {
+                        this.paginationContainer.appendChild(this.createJumpInput());
+                    }
+                }
+
+                createJumpInput() {
+                    if (!this.showJumpInput) return null;
+                    const input = document.createElement("input");
+                    input.type = "number";
                     input.min = 1;
                     input.max = this.totalPages;
                     input.value = this.currentPage;
-
-                    // const goBtn = document.createElement('button');
-                    // goBtn.textContent = 'Go';
-                    input.addEventListener('keydown', (e) => {
-                        if (e.key === 'Enter' || e.keyCode === 13) {
+                    input.addEventListener("keydown", (e) => {
+                        if (e.key === "Enter") {
                             const target = parseInt(input.value);
-                            if (isNaN(target)) {
-                                return;
-                            }
-                            this.loadPage(target);
+                            if (!isNaN(target)) this.loadPage(target);
                         }
                     });
-
-                    this.paginationContainer.appendChild(input);
-                    // this.paginationContainer.appendChild(goBtn);
+                    return input;
                 }
 
                 createEllipsis() {
-                    const span = document.createElement('span');
-                    span.textContent = '...';
-                    span.classList.add('ellipsis');
+                    const span = document.createElement("span");
+                    span.textContent = "...";
+                    span.classList.add("ellipsis");
                     return span;
                 }
             }
 
-            // const data = Array.from({length: 73}, (_, i) => ({id: i + 1, name: 'Item ' + (i + 1)}));
-
-            // new Pagination({
-            //     mode: 'front',
-            //     data,
-            //     pageSize: 5,
-            //     renderRow: (item) => `<tr><td>${item.id}</td><td>${item.name}</td></tr>`,
-            //     renderContainer: '#data-container',
-            //     paginationContainer: '#pagination',
-            // });
-
+            // --- DEMO BACK ---
             async function fetchPosts(page, pageSize) {
                 const res = await fetch(`https://jsonplaceholder.typicode.com/posts?_page=${page}&_limit=${pageSize}`);
                 const items = await res.json();
-                const total = res.headers.get('x-total-count') || 100; // jsonplaceholder fix 100
-                return {items, total: parseInt(total)};
+                const total = res.headers.get("x-total-count") || 100;
+                return { items, total: parseInt(total) };
             }
 
             new Pagination({
-                mode: 'back',
-                pageSize: 20,
+                mode: "back",
+                pageSize: 5,
                 fetchData: fetchPosts,
-                renderRow: (item) => `<tr><td>${item.id}</td><td>${item.title}</td></tr>`,
-                renderContainer: '#data-container',
-                paginationContainer: '#pagination',
+                renderRow: (item) => `<td>${item.id}</td><td>${item.title}</td>`,
+                tableId: "myTable",
+                showJumpInput: true,
+            });
+
+            // --- DEMO FRONT ---
+            const data = Array.from({ length: 73 }, (_, i) => ({
+                id: i + 1,
+                name: "Item " + (i + 1),
+            }));
+            new Pagination({
+                mode: "front",
+                data,
+                pageSize: 5,
+                renderRow: (item) => `<td>${item.id}</td><td>${item.name}</td>`,
+                tableId: "myTable1",
+                searchInput: "#searchBox",
+                showJumpInput: false,
             });
         </script>
     </body>
