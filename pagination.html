@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <title>Pagination with Jump</title>
+        <style>
+            .pagination button.active {
+                font-weight: bold;
+                background: #007bff;
+                color: #fff;
+            }
+            table {
+                border-collapse: collapse;
+                width: 100%;
+                margin-top: 10px;
+            }
+            td,
+            th {
+                border: 1px solid #ddd;
+                padding: 6px;
+            }
+
+            .pagination {
+                display: flex;
+                gap: 5px;
+                margin-top: 15px;
+                flex-wrap: wrap;
+                align-items: center;
+            }
+            .pagination button {
+                padding: 5px 10px;
+                border: 1px solid #333;
+                cursor: pointer;
+                background: #fff;
+            }
+            .pagination button.active {
+                background: #007bff;
+                color: #fff;
+            }
+            .pagination button:disabled {
+                background: #eee;
+                cursor: not-allowed;
+            }
+            .pagination input {
+                width: 50px;
+                padding: 4px;
+                text-align: center;
+            }
+        </style>
+    </head>
+    <body>
+        <div>
+            <table border="1">
+                <tbody id="data-container"></tbody>
+            </table>
+            <div id="pagination"></div>
+        </div>
+
+        <script>
+            class Pagination {
+                constructor({
+                    mode = 'front', // "front" | "back"
+                    data = [],
+                    pageSize = 5,
+                    totalItems = null,
+                    fetchData = null,
+                    renderRow,
+                    renderContainer,
+                    paginationContainer,
+                }) {
+                    this.mode = mode;
+                    this.data = data;
+                    this.pageSize = pageSize;
+                    this.totalItems = totalItems || data.length;
+                    this.fetchData = fetchData;
+                    this.renderRow = renderRow;
+                    this.renderContainer = document.querySelector(renderContainer);
+                    this.paginationContainer = document.querySelector(paginationContainer);
+
+                    this.currentPage = 1;
+                    this.totalPages = Math.ceil(this.totalItems / this.pageSize);
+
+                    this.loadPage(1);
+                }
+
+                async loadPage(page) {
+                    // xử lý ngoại lệ
+                    if (isNaN(page) || page < 1) page = 1;
+                    if (page > this.totalPages) page = this.totalPages;
+
+                    this.currentPage = page;
+
+                    let items = [];
+                    if (this.mode === 'front') {
+                        const start = (page - 1) * this.pageSize;
+                        items = this.data.slice(start, start + this.pageSize);
+                    } else if (this.mode === 'back' && typeof this.fetchData === 'function') {
+                        const res = await this.fetchData(page, this.pageSize);
+                        items = res.items;
+                        this.totalItems = res.total;
+                        this.totalPages = Math.ceil(this.totalItems / this.pageSize);
+                    }
+
+                    this.renderData(items);
+                    this.renderPagination();
+                }
+
+                renderData(items) {
+                    if (!this.renderRow) return;
+                    this.renderContainer.innerHTML = '';
+                    items.forEach((item) => {
+                        this.renderContainer.insertAdjacentHTML('beforeend', this.renderRow(item));
+                    });
+                }
+
+                renderPagination() {
+                    this.paginationContainer.innerHTML = '';
+
+                    const createButton = (label, page, disabled = false, active = false) => {
+                        const btn = document.createElement('button');
+                        btn.textContent = label;
+                        btn.disabled = disabled;
+                        if (active) btn.classList.add('active');
+                        btn.addEventListener('click', () => this.loadPage(page));
+                        return btn;
+                    };
+
+                    // Prev
+                    this.paginationContainer.appendChild(createButton('Prev', this.currentPage - 1, this.currentPage === 1));
+
+                    // Pages with "..."
+                    const maxVisible = 5;
+                    let start = Math.max(1, this.currentPage - 2);
+                    let end = Math.min(this.totalPages, start + maxVisible - 1);
+
+                    if (end - start < maxVisible - 1) {
+                        start = Math.max(1, end - maxVisible + 1);
+                    }
+
+                    if (start > 1) {
+                        this.paginationContainer.appendChild(createButton('1', 1));
+                        if (start > 2) {
+                            this.paginationContainer.appendChild(this.createEllipsis());
+                        }
+                    }
+
+                    for (let i = start; i <= end; i++) {
+                        this.paginationContainer.appendChild(createButton(i, i, false, i === this.currentPage));
+                    }
+
+                    if (end < this.totalPages) {
+                        if (end < this.totalPages - 1) {
+                            this.paginationContainer.appendChild(this.createEllipsis());
+                        }
+                        this.paginationContainer.appendChild(createButton(this.totalPages, this.totalPages));
+                    }
+
+                    // Next
+                    this.paginationContainer.appendChild(createButton('Next', this.currentPage + 1, this.currentPage === this.totalPages));
+
+                    // Jump to page
+                    const input = document.createElement('input');
+                    input.type = 'number';
+                    input.min = 1;
+                    input.max = this.totalPages;
+                    input.value = this.currentPage;
+
+                    // const goBtn = document.createElement('button');
+                    // goBtn.textContent = 'Go';
+                    input.addEventListener('keydown', (e) => {
+                        if (e.key === 'Enter' || e.keyCode === 13) {
+                            const target = parseInt(input.value);
+                            if (isNaN(target)) {
+                                return;
+                            }
+                            this.loadPage(target);
+                        }
+                    });
+
+                    this.paginationContainer.appendChild(input);
+                    // this.paginationContainer.appendChild(goBtn);
+                }
+
+                createEllipsis() {
+                    const span = document.createElement('span');
+                    span.textContent = '...';
+                    span.classList.add('ellipsis');
+                    return span;
+                }
+            }
+
+            // const data = Array.from({length: 73}, (_, i) => ({id: i + 1, name: 'Item ' + (i + 1)}));
+
+            // new Pagination({
+            //     mode: 'front',
+            //     data,
+            //     pageSize: 5,
+            //     renderRow: (item) => `<tr><td>${item.id}</td><td>${item.name}</td></tr>`,
+            //     renderContainer: '#data-container',
+            //     paginationContainer: '#pagination',
+            // });
+
+            async function fetchPosts(page, pageSize) {
+                const res = await fetch(`https://jsonplaceholder.typicode.com/posts?_page=${page}&_limit=${pageSize}`);
+                const items = await res.json();
+                const total = res.headers.get('x-total-count') || 100; // jsonplaceholder fix 100
+                return {items, total: parseInt(total)};
+            }
+
+            new Pagination({
+                mode: 'back',
+                pageSize: 20,
+                fetchData: fetchPosts,
+                renderRow: (item) => `<tr><td>${item.id}</td><td>${item.title}</td></tr>`,
+                renderContainer: '#data-container',
+                paginationContainer: '#pagination',
+            });
+        </script>
+    </body>
+</html>
