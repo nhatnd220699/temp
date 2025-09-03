@@ -1,0 +1,916 @@
+<%@ page contentType="text/html;charset=UTF-8" language="java"%>
+<link rel="stylesheet" href="/hr-system/assets/css/custom/pagination.css" />
+<style>
+    .loader {
+        position: fixed;
+        z-index: 1000;
+        top: 0;
+        left: 0;
+        height: 100%;
+        width: 100%;
+        background: url('/hr-system/assets/images/loadingg.gif') 50% 40% no-repeat;
+        background-size: 100px;
+    }
+
+    .label-title {
+        float: left;
+        margin-left: 0.75rem;
+        margin-top: 0.25rem;
+    }
+
+    .header label:first-child {
+        margin-left: 0;
+    }
+
+    .container-table {
+        /* min-width: 100vw; */
+        overflow-x: auto;
+        max-height: calc(100vh - 21vh);
+        border: 1px solid black;
+        background-color: #fff;
+    }
+
+    #tblQuestList {
+        margin: 0;
+        min-width: 100%;
+        width: max-content;
+    }
+
+    #tblQuestList th,
+    #tblQuestList td {
+        padding: 0.25rem 0.5rem;
+        vertical-align: middle;
+        text-align: center;
+        transition: all 200ms linear;
+    }
+
+    #tblQuestList th {
+        padding: 0.25rem 0.75rem;
+        border: 1px solid #272727;
+        border-left: 0;
+        border-top: 0;
+        border-bottom: 1px dotted #272727;
+        max-width: 5rem;
+        /* white-space: nowrap; */
+        /* text-overflow: ellipsis; */
+        overflow: hidden;
+    }
+
+    #tblQuestList td {
+        border: 1px dotted black;
+        border-left: 0;
+        border-top: 0;
+        max-width: 7rem;
+        /* white-space: nowrap;
+        text-overflow: ellipsis;
+        overflow: hidden; */
+    }
+    #tblQuestList td:first-child {
+        border-left: 1px dotted #272727;
+    }
+
+    #tblQuestList tbody tr:hover td {
+        background-color: #218eaf;
+        color: #fff;
+        /* cursor: pointer; */
+    }
+
+    #pagination-wrapper button {
+        text-align: center;
+        background-color: transparent;
+        color: #000;
+        border: none;
+        margin-top: 10px;
+        border-radius: 5px;
+    }
+
+    .btn-custom {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.875rem;
+    }
+
+    .header .select2.select2-container {
+        display: block;
+        float: left;
+        margin-left: 0.5rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .pagination {
+        display: inline-flex;
+    }
+    .pagination a {
+        color: black;
+        float: left;
+        padding: 0.25rem 0.75rem;
+        text-decoration: none;
+        transition: background-color 0.3s;
+    }
+
+    .pagination a:hover {
+        cursor: pointer;
+        box-shadow: 0 0 1px rgba(0, 0, 0, 0.125), 0 1px 3px rgba(0, 0, 0, 0.2);
+    }
+
+    .pagination a.current {
+        background-color: dodgerblue;
+        color: white;
+        border-radius: 2px;
+    }
+
+    .edit-info .select2-container--default .select2-selection--single {
+        border: 1px solid #ced4da;
+        /* background: #eafaff; */
+        height: calc(2.25rem + 2px);
+    }
+    .edit-info .select2-container--default .select2-selection--single .select2-selection__rendered {
+        line-height: 1.5 !important;
+        font-size: 1rem;
+        padding-left: 0;
+    }
+    .edit-info .select2-container--default .select2-selection--single .select2-selection__arrow {
+        height: 31px;
+        right: 6px;
+    }
+    table.dataTable {
+        margin-top: 0 !important;
+    }
+
+    #tblQuestList_wrapper .row .col-sm-12 {
+        overflow-x: auto;
+    }
+
+    .img-inject {
+        width: 60px;
+        height: 60px;
+        float: left;
+        object-fit: cover;
+        border: 1px solid #ced4da;
+        margin: 5px 5px 0 0;
+        cursor: pointer;
+    }
+
+    .select2-container .select2-selection--single,
+    .select2-container .select2-selection--multiple {
+        height: calc(1.8125rem + 2px);
+    }
+
+    .select2-container .select2-selection__rendered li {
+    }
+
+    .select2-container--default .select2-selection--multiple .select2-selection__rendered {
+        display: flex;
+        align-items: center;
+    }
+
+    .select2-selection--multiple .select2-selection__rendered {
+        display: flex !important;
+        flex-wrap: nowrap !important;
+        overflow-x: auto;
+        white-space: nowrap;
+    }
+
+    .select2-container--default .select2-selection--multiple .select2-selection__clear {
+        margin-top: 0;
+    }
+
+    .select2-container--default .select2-selection--multiple .select2-selection__choice {
+        height: 80%;
+        font-size: 14px;
+        margin-top: 0;
+        min-width: 120px;
+        max-width: 120px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        color: #000;
+    }
+</style>
+
+<%@ include file="../../common/navbar.jsp" %> <%@ include file="../../common/sidebar.jsp" %>
+<div class="loader d-none"></div>
+<div class="content-wrapper">
+    <section class="content" style="background-color: #edf6ff">
+        <div class="container-fluid">
+            <div class="row pt-2">
+                <div class="col-sm-12 p-0 header">
+                    <label class="label-title">Cam kết: </label>
+                    <select class="select-quest select2 form-control form-control-sm ml-2 float-left" multiple style="width: 20rem">
+                        <option value="COMMITMENT_01" selected>Cam kết bảo mật tiền lương nhân viên</option>
+                        <option value="COMMITMENT_02" selected>Bản cam kết không mất phí tuyển dụng</option>
+                        <option value="COMMITMENT_03" selected>Cam kết thực hiện chế độ nghỉ luân phiên 6-1</option>
+                        <option value="COMMITMENT_04" selected>Cam kết không vi phạm quy định về phòng, chống tham nhũng</option>
+                        <option value="COMMITMENT_05" selected>Mẫu chủ động trình báo của CBCNV</option>
+                        <option value="COMMITMENT_06" selected>Cam kết bảo, mật quyền sở hữu trí tuệ và đạo đức nghề nghiệp 1</option>
+                        <option value="COMMITMENT_07" selected>Cam kết bảo, mật quyền sở hữu trí tuệ và đạo đức nghề nghiệp 2</option>
+                        <option value="COMMITMENT_08" selected>Thông báo và đồng ý xử lý dữ liệu cá nhân</option>
+                    </select>
+
+                    <label class="label-title">Thời gian: </label>
+                    <input type="text" class="form-control form-control-sm float-left ml-2" style="width: 14vw" id="timeSpan" />
+
+                    <label class="label-title">Pháp nhân: </label>
+                    <select class="select-legal form-control form-control-sm ml-2 float-left" style="width: 5rem">
+                        <option value="">Tất cả</option>
+                    </select>
+
+                    <label class="label-title">BU: </label>
+                    <select class="select-bu form-control form-control-sm ml-2 float-left" style="width: 6rem">
+                        <option value="">Tất cả</option>
+                    </select>
+
+                    <label class="label-title">CFT: </label>
+                    <select class="select-cft form-control form-control-sm ml-2 float-left" style="width: 6rem">
+                        <option value="">Tất cả</option>
+                    </select>
+
+                    <label class="label-title">Bộ phận: </label>
+                    <select class="select-dept form-control form-control-sm ml-2 float-left" style="width: 6rem">
+                        <option value="">Tất cả</option>
+                    </select>
+
+                    <div class="float-right mr-2">
+                        <button class="btn btn-custom btn-info btn-download" onclick="exportExcel()">
+                            <i class="fas fa-download"></i>
+                            <spring:message code="attendance-report.btnDownload" />
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row pt-2">
+                <div class="col-sm-12 container-table p-0">
+                    <div class="table-responsive">
+                        <table class="table table-bordered text-sm" id="tblQuestList">
+                            <thead>
+                                <tr>
+                                    <th>No.</th>
+                                    <th>Mã thẻ</th>
+                                    <th>Tên tiếng Việt</th>
+                                    <th>Tên tiếng Trung</th>
+                                    <th>BU</th>
+                                    <th>CFT</th>
+                                    <th>Bộ phận</th>
+                                    <th>Ngày vào</th>
+                                    <th>Trạng thái ký</th>
+                                    <th>Bảo mật<br />tiền lương</th>
+                                    <th>Không mất phí<br />tuyển dụng</th>
+                                    <th>Thực hiện<br />luân phiên 6-1</th>
+                                    <th>
+                                        Không vi phạm phòng<br />
+                                        chống tham nhũng
+                                    </th>
+                                    <th>Chủ dộng trình báo<br />CBCNV</th>
+                                    <th>Quyền sở hữu TT&ĐĐ 1</th>
+                                    <th>Quyền sở hữu TT&ĐĐ 2</th>
+                                    <th>Xử lý dữ liệu<br />cá nhân</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal fade" id="modal-upload">
+            <div class="modal-dialog">
+                <div class="modal-content text-sm">
+                    <div class="modal-header p-2">
+                        <span class="modal-title"><i class="fas fa-file-excel"></i> <spring:message code="attendance-report.uploadExcel" /></span>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body p-2">
+                        <form class="form-horizontal">
+                            <div class="card-body p-0">
+                                <div class="row">
+                                    <div class="col-sm-12">
+                                        <input
+                                            id="input-file"
+                                            class="note-image-input form-control-file note-form-control note-input"
+                                            type="file"
+                                            name="files"
+                                            accept=".xls, .xlsx"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer p-2">
+                        <a href="/hr-system/assets/files/tro_cap_1_thang_sau_sinh.xlsx" class="btn btn-default btn-sm float-left"
+                            ><i class="fas fa-question-circle"></i> Format File</a
+                        >
+                        <button type="button" class="btn btn-primary btn-sm" onclick="submitFileExcel()">
+                            <i class="fas fa-check"></i> <spring:message code="attendance-report.btnUpload" />
+                        </button>
+                        <button class="btn btn-default btn-sm" data-dismiss="modal">
+                            <spring:message code="attendance-report.btnCancel" />
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
+
+<script src="/hr-system/assets/js/custom/helpers.js"></script>
+<!-- <script src="/hr-system/assets/js/custom/pagination.js"></script> -->
+<script>
+    class Pagination {
+        constructor({
+            mode = 'front', // "front" | "back"
+            data = [],
+            pageSize = 5,
+            totalItems = null,
+            fetchData = null,
+            renderRow,
+            tableId,
+            showJumpInput,
+            searchInput = null,
+        }) {
+            this.mode = mode.toLowerCase().trim();
+            this.data = data;
+            this.cacheData = data;
+            this.pageSize = pageSize;
+            this.totalItems = totalItems || data.length;
+            this.fetchData = fetchData;
+            this.renderRow = renderRow;
+            this.showJumpInput = showJumpInput;
+            this.searchInput = searchInput;
+
+            // lấy table và tbody
+            this.table = document.getElementById(tableId);
+            if (!this.table) throw new Error(`Table with id "${tableId}" not found`);
+            this.renderContainer = this.table.querySelector('tbody');
+            if (!this.renderContainer) {
+                this.renderContainer = document.createElement('tbody');
+                this.table.appendChild(this.renderContainer);
+            }
+
+            // tạo pagination container ngay sau table
+            this.paginationContainer = document.createElement('div');
+            this.paginationContainer.classList.add('pagination');
+            this.table.parentNode.removeChild(this.table.parentNode.lastChild);
+            this.table.parentNode.appendChild(this.paginationContainer);
+
+            this.currentPage = 1;
+            this.totalPages = Math.max(1, Math.ceil(this.totalItems / this.pageSize));
+
+            // Gắn search input nếu có
+            if (this.mode === 'front' && this.searchInput) {
+                const inputEl = document.querySelector(this.searchInput);
+                if (inputEl) {
+                    inputEl.addEventListener('input', (e) => {
+                        console.log(this.data);
+                        const keyword = e.target.value.toLowerCase();
+                        if (keyword) {
+                            this.data = this.data.filter((item) => item.name.toLowerCase().indexOf(keyword) > -1);
+                        } else {
+                            this.data = this.cacheData;
+                        }
+
+                        this.totalItems = this.data.length;
+                        this.totalPages = Math.max(1, Math.ceil(this.totalItems / this.pageSize));
+
+                        this.loadPage(1);
+                    });
+                }
+            }
+
+            this.loadPage(1);
+        }
+
+        async loadPage(page) {
+            if (isNaN(page) || page < 1) page = 1;
+            if (page > this.totalPages) page = this.totalPages;
+
+            this.currentPage = page;
+
+            let items = [];
+            try {
+                if (this.mode === 'front') {
+                    const start = (page - 1) * this.pageSize;
+                    items = this.data.slice(start, start + this.pageSize);
+                } else if (this.mode === 'back' && typeof this.fetchData === 'function') {
+                    const res = await this.fetchData(page, this.pageSize);
+                    items = res.items || [];
+                    this.totalItems = res.total || items.length;
+                    this.totalPages = Math.max(0, Math.ceil(this.totalItems / this.pageSize));
+                }
+            } catch (err) {
+                console.error('Load page error:', err);
+            }
+
+            this.renderData(items);
+            this.renderPagination();
+        }
+
+        renderData(items) {
+            if (!this.renderRow) return;
+            this.renderContainer.innerHTML = '';
+
+            if (items.length > 0) {
+                const frag = document.createDocumentFragment();
+                items.forEach((item) => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = this.renderRow(item);
+                    frag.appendChild(row);
+                });
+                this.renderContainer.appendChild(frag);
+            } else {
+                this.renderContainer.innerHTML = `<tr><td colspan="50">No data</td></tr>`;
+            }
+        }
+
+        renderPagination() {
+            this.paginationContainer.innerHTML = '';
+            if (this.mode === 'front' && this.data.length <= 0) return;
+            else if (this.mode === 'back' && this.fetchData.length <= 0) return;
+
+            const createButton = (label, page, disabled = false, active = false) => {
+                const btn = document.createElement('button');
+                btn.textContent = label;
+                btn.disabled = disabled;
+                if (active) btn.classList.add('active');
+                btn.addEventListener('click', () => this.loadPage(page));
+                return btn;
+            };
+
+            // Prev
+            this.paginationContainer.appendChild(createButton('Prev', this.currentPage - 1, this.currentPage === 1));
+
+            // Page numbers
+            const maxVisible = 5;
+            let start = Math.max(1, this.currentPage - 2);
+            let end = Math.min(this.totalPages, start + maxVisible - 1);
+
+            if (end - start < maxVisible - 1) {
+                start = Math.max(1, end - maxVisible + 1);
+            }
+
+            if (start > 1) {
+                this.paginationContainer.appendChild(createButton('1', 1));
+                if (start > 2) this.paginationContainer.appendChild(this.createEllipsis());
+            }
+
+            for (let i = start; i <= end; i++) {
+                this.paginationContainer.appendChild(createButton(i, i, false, i === this.currentPage));
+            }
+
+            if (end < this.totalPages) {
+                if (end < this.totalPages - 1) {
+                    this.paginationContainer.appendChild(this.createEllipsis());
+                }
+                this.paginationContainer.appendChild(createButton(this.totalPages, this.totalPages));
+            }
+
+            // Next
+            this.paginationContainer.appendChild(createButton('Next', this.currentPage + 1, this.currentPage === this.totalPages));
+
+            // Jump input
+            if (this.createJumpInput()) {
+                this.paginationContainer.appendChild(this.createJumpInput());
+            }
+        }
+
+        createJumpInput() {
+            if (!this.showJumpInput) return null;
+            const input = document.createElement('input');
+            input.type = 'number';
+            input.min = 1;
+            input.max = this.totalPages;
+            input.value = this.currentPage;
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    const target = parseInt(input.value);
+                    if (!isNaN(target)) this.loadPage(target);
+                }
+            });
+            return input;
+        }
+
+        createEllipsis() {
+            const span = document.createElement('span');
+            span.textContent = '...';
+            span.classList.add('ellipsis');
+            return span;
+        }
+    }
+</script>
+<script>
+    // const pag = new Pagination();
+    var dataset = {
+        floor: '${floor}',
+        empNo: '${empNo}',
+        idUser: '${idUser}',
+        userName: '${nameUser}',
+        department: '${department}',
+        idFactory: '${id_factory}',
+        deptCode: '${dept_code}',
+        userLevel: '${user_level}',
+        page: 0,
+        factory: '',
+        bu: '',
+        cft: '',
+        formCode: 'QUEST_10',
+    };
+
+    $(document).ready(function () {
+        init();
+    });
+
+    function init() {
+        loadEvent();
+        getTimeSpan();
+        getLegal();
+    }
+
+    function loadEvent() {
+        dataset.formCode = $('.select-quest').val().join(';');
+
+        $('.select-quest').select2({
+            closeOnSelect: false,
+        });
+
+        $('.select-quest').on('change', function () {
+            datast.formCode = $(this).val().join(';');
+            renderTable();
+        });
+
+        $('.select-legal').on('change', function () {
+            dataset.page = 0;
+            dataset.legal = $(this).val();
+            getBU();
+        });
+
+        $('.select-bu').on('change', function () {
+            dataset.page = 0;
+            dataset.bu = $(this).val();
+            getCFT();
+        });
+
+        $('.select-cft').on('change', function () {
+            dataset.page = 0;
+            dataset.cft = $(this).val();
+            getDept();
+        });
+
+        $('.select-dept').on('change', function () {
+            dataset.page = 0;
+            dataset.department = $(this).val();
+            renderTable();
+        });
+    }
+
+    function getTimeSpan() {
+        $('#timeSpan').daterangepicker(
+            {
+                singleDatePicker: false,
+                timePicker: false,
+                showDropdowns: true,
+                startDate: moment().startOf('month').format('YYYY/MM/DD 00:00'),
+                endDate: moment().format('YYYY/MM/DD 23:59'),
+                locale: {
+                    format: 'YYYY/MM/DD HH:mm',
+                },
+            },
+            function (start, end, label) {
+                dataset.timeSpan = moment(start).format('YYYY/MM/DD HH:mm') + ' - ' + moment(end).format('YYYY/MM/DD HH:mm');
+                renderTable();
+            }
+        );
+
+        dataset.timeSpan = $('#timeSpan').val();
+    }
+
+    function getLegal() {
+        dataset.legal = '';
+        $.ajax({
+            type: 'GET',
+            url: '/hr-system/api/hrpm/get_factory',
+            data: {
+                empNo: dataset.empNo,
+            },
+            success: function (res) {
+                $('.select-legal').html('');
+                var html = '<option value="">All</option>';
+                var data = res.result;
+                for (i in data) {
+                    html += '<option value="' + data[i].legal_person + '">' + data[i].legal_person + '</option>';
+                }
+                $('.select-legal').html(html);
+                $('.select-legal').val(dataset.legal);
+            },
+            complete: function () {
+                getBU();
+            },
+        });
+    }
+
+    function getBU() {
+        dataset.bu = '';
+
+        $.ajax({
+            type: 'GET',
+            url: '/hr-system/api/hrpm/get_bu',
+            data: {
+                empNo: dataset.empNo,
+                factory: dataset.legal,
+            },
+            success: function (res) {
+                // console.log(res);
+                $('.select-bu').html('');
+                var html = '<option value="">All</option>';
+                var data = res.result;
+                for (i in data) {
+                    if (data[i].bu == '') {
+                        continue;
+                    }
+                    html += '<option value="' + data[i].bu + '">' + data[i].bu + '</option>';
+                }
+                $('.select-bu').html(html);
+                $('.select-bu').val(dataset.bu);
+            },
+            complete: function () {
+                getCFT();
+            },
+        });
+    }
+
+    function getCFT() {
+        dataset.cft = '';
+        $.ajax({
+            type: 'GET',
+            url: '/hr-system/api/hrpm/get_cft',
+            data: {
+                empNo: dataset.empNo,
+                bu: dataset.bu,
+                factory: dataset.legal,
+            },
+            success: function (res) {
+                $('.select-cft').html('');
+                var html = '<option value="">All</option>';
+                var data = res.result;
+                for (i in data) {
+                    html += '<option value="' + data[i].cft + '">' + data[i].cft + '</option>';
+                }
+                $('.select-cft').html(html);
+                $('.select-cft').val(dataset.cft);
+            },
+            complete: function () {
+                getDept();
+            },
+        });
+    }
+
+    function getDept() {
+        dataset.department = '';
+        $.ajax({
+            type: 'GET',
+            url: '/hr-system/api/hrpm/get_department',
+            data: {
+                cft: dataset.cft,
+            },
+            async: false,
+            success: function (res) {
+                if (res.code == 'SUCCESS') {
+                    var data = res.result;
+                    var html = '<option value="">All</option>';
+                    for (i in data) {
+                        if (data[i].department != '') {
+                            html += '<option value="' + data[i].department + '">' + data[i].department + '</option>';
+                        }
+                    }
+                    $('.select-dept').html(html);
+                    $('.select-dept').val(dataset.department);
+                }
+            },
+            error: function () {
+                swal('ERROR!', 'NO DATA!', 'error');
+            },
+            complete: function () {
+                renderTable();
+            },
+        });
+    }
+
+    async function getCommitment(page, pageSize) {
+        let data;
+        let total = 0;
+        let params = new URLSearchParams({
+            legal: dataset.legal,
+            bu: dataset.bu,
+            cft: dataset.cft,
+            department: dataset.department,
+            timeSpan: dataset.timeSpan,
+            formCode: dataset.formCode,
+            status: 1,
+            empNo: dataset.empNo,
+            page: page <= 1 ? 0 : page - 1,
+            pageSize: pageSize,
+        }).toString();
+
+        $('.loader').removeClass('d-none');
+
+        try {
+            const res = await fetch(`/hr-system/api/oppm/get_quest_status?\${params}`);
+            if (!res.ok) {
+                throw new Error(await res.json().message);
+            }
+            const result = await res.json();
+
+            data = result.data;
+            total = result.size || 0;
+
+            let headerData = data[0];
+
+            let thead = '';
+            headerData.forEach((item2, index2) => {
+                thead += `<th>\${item2}</th>`;
+            });
+            thead = `<tr>\${thead}</tr>`;
+
+            document.querySelector('#tblQuestList thead').innerHTML = thead;
+        } catch (error) {
+            console.log(error.message);
+        } finally {
+            $('.loader').addClass('d-none');
+        }
+        // $.ajax({
+        //     type: 'GET',
+        //     url: '/hr-system/api/oppm/get_quest_status',
+        //     data: {
+        //         legal: dataset.legal,
+        //         bu: dataset.bu,
+        //         cft: dataset.cft,
+        //         department: dataset.department,
+        //         timeSpan: dataset.timeSpan,
+        //         formCode: dataset.formCode,
+        //         status: 1,
+        //         empNo: dataset.empNo,
+        //         page: page <= 1 ? 0 : page - 1,
+        //         pageSize: pageSize,
+        //         // reportEmpNo: dataset.empNo,
+        //     },
+        //     contentType: 'application/json; chartset=utf-8',
+        //     success: function (res) {
+        //         data = res.data || [];
+        //         total = res.size || 0;
+
+        //         let headerData = data[0];
+
+        //         let thead = '';
+        //         headerData.forEach((item2, index2) => {
+        //             thead += `<th>\${item2}</th>`;
+        //         });
+        //         thead = `<tr>\${thead}</tr>`;
+
+        //         document.querySelector('#tblQuestList thead').innerHTML = thead;
+        //     },
+        //     complete: function () {
+        //         $('.loader').addClass('d-none');
+
+        //     },
+        // });
+
+        let selectedData = data.length > 1 ? data.slice(1) : [];
+        console.log(selectedData);
+        return { items: selectedData, total: parseInt(total) };
+    }
+
+    function renderTable() {
+        new Pagination({
+            mode: 'back',
+            pageSize: 10,
+            fetchData: getCommitment,
+            renderRow: (item, index) => {
+                if (index == 0) {
+                    item.forEach((item2, index2) => {
+                        thead += `<th>\${item2}</th>`;
+                    });
+
+                    thead = `<tr>\${thead}</tr>`;
+                }
+            },
+            tableId: 'tblQuestList',
+        });
+    }
+
+    function exportExcel() {
+        $('.loader').removeClass('d-none');
+        var request = new XMLHttpRequest();
+        request.open(
+            'GET',
+            '/hr-system/api/sfc/maternity/export?' +
+                'timeSpan=' +
+                dataset.timeSpan +
+                '&legal=' +
+                dataset.legal +
+                '&bu=' +
+                dataset.bu +
+                '&cft=' +
+                dataset.cft +
+                '&department=' +
+                dataset.department +
+                '&reportEmpNo=' +
+                dataset.empNo,
+            true
+        );
+        request.setRequestHeader('Content-Type', 'application/json; charset=utf-8');
+        request.responseType = 'blob';
+
+        request.onload = function (e) {
+            if (this.status === 200) {
+                var filename = '';
+                var disposition = this.getResponseHeader('Content-Disposition');
+                if (disposition && disposition.indexOf('attachment') !== -1) {
+                    var filenameRegex = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/;
+                    var matches = filenameRegex.exec(disposition);
+                    if (matches != null && matches[1]) filename = matches[1].replace(/['"]/g, '');
+                }
+
+                var blob = this.response;
+                if (typeof window.navigator.msSaveBlob !== 'undefined') {
+                    window.navigator.msSaveBlob(blob, filename);
+                } else {
+                    var URL = window.URL || window.webkitURL;
+                    var downloadUrl = URL.createObjectURL(blob);
+                    if (filename) {
+                        var a = document.createElement('a');
+                        if (typeof a.download === 'undefined') {
+                            window.location.href = downloadUrl;
+                        } else {
+                            a.href = downloadUrl;
+                            a.download = filename;
+                            document.body.appendChild(a);
+                            a.click();
+                        }
+                    } else {
+                        window.location.href = downloadUrl;
+                    }
+
+                    setTimeout(function () {
+                        URL.revokeObjectURL(downloadUrl);
+                    }, 100);
+                }
+                $('.loader').addClass('d-none');
+            } else {
+                $('.loader').addClass('d-none');
+            }
+        };
+        request.send();
+    }
+</script>
+
+
+{
+    "status": "OK",
+    "code": "SUCCESS",
+    "message": "success",
+    "data": [
+        [
+            "TT\n序號",
+            "Mã thẻ\n工號",
+            "Họ và tên\n姓名",
+            "中文名字",
+            "BU",
+            "CFT",
+            "Bộ phận\n部分",
+            "Ngày vào\n入廠日期",
+            "Cam kết bảo mật tiền lương nhân viên",
+            "Bản cam kết không mất phí tuyển dụng",
+            "Cam kết thực hiện chế độ nghỉ luân phiên 6-1",
+            "Cam kết không vi phạm quy định về phòng, chống tham nhũng",
+            "Mẫu chủ động trình báo của CBCNV",
+            "Cam kết bảo, mật quyền sở hữu trí tuệ và đạo đức nghề nghiệp 1",
+            "Cam kết bảo, mật quyền sở hữu trí tuệ và đạo đức nghề nghiệp 2",
+            "Thông báo và đồng ý xử lý dữ liệu cá nhân",
+            "Người cập nhật",
+            "Ngày cập nhật"
+        ],
+        [
+            "1",
+            "V1060494",
+            "Nguyễn Văn Nhật",
+            "阮文日",
+            "工業互聯網",
+            "工業互聯網",
+            "軟體技術",
+            "2023/06/16",
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            "V",
+            null,
+            "2025/07/09 11:28:59"
+        ]
+    ],
+    "size": 1
+}
