@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Get Location</title>
+    </head>
+    <body>
+        <button onclick="getLocation()">Lấy tọa độ</button>
+        <p id="output"></p>
+
+        <script>
+            function getLocation() {
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(showPosition, showError, {
+                        enableHighAccuracy: true, // bật GPS chính xác hơn
+                        timeout: 10000, // tối đa 10s
+                        maximumAge: 0,
+                    });
+                } else {
+                    document.getElementById('output').innerHTML = 'Trình duyệt không hỗ trợ Geolocation.';
+                }
+            }
+
+            function showPosition(position) {
+                const lat = position.coords.latitude;
+                const lon = position.coords.longitude;
+                document.getElementById('output').innerHTML = 'Latitude: ' + lat + '<br>Longitude: ' + lon;
+            }
+
+            function showError(error) {
+                switch (error.code) {
+                    case error.PERMISSION_DENIED:
+                        alert('Người dùng từ chối chia sẻ vị trí.');
+                        break;
+                    case error.POSITION_UNAVAILABLE:
+                        alert('Thông tin vị trí không khả dụng.');
+                        break;
+                    case error.TIMEOUT:
+                        alert('Yêu cầu lấy vị trí quá thời gian cho phép.');
+                        break;
+                    default:
+                        alert('Lỗi không xác định.');
+                        break;
+                }
+            }
+        </script>
+    </body>
+</html>
