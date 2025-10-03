@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>three.js webgl - collada - skinning</title>
+		<meta charset="utf-8" />
+		<meta
+			name="viewport"
+			content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0"
+		/>
+		<link type="text/css" rel="stylesheet" href="main.css" />
+	</head>
+	<body>
+		<div id="container"></div>
+		<div id="info">
+			<a href="https://threejs.org" target="_blank" rel="noopener">three.js</a>
+			collada loader - skinning<br />
+			Dancing Stormtrooper by
+			<a
+				href="https://sketchfab.com/strykerdoesgames"
+				target="_blank"
+				rel="noopener"
+				>StrykerDoesAnimation</a
+			>,
+			<a
+				href="https://creativecommons.org/licenses/by/4.0/"
+				target="_blank"
+				rel="noopener"
+				>CC Attribution</a
+			>
+		</div>
+
+		<!-- importmaps header for three -->
+		<script type="importmap">
+			{
+				"imports": {
+					"three": "https://unpkg.com/three@0.161.0/build/three.module.js",
+					"three/addons/": "https://unpkg.com/three@0.161.0/examples/jsm/"
+				}
+			}
+		</script>
+
+		<body style="margin: 0">
+			<canvas id="c"></canvas>
+		</body>
+
+		<script type="module">
+			// Three.js + loaders
+			import * as THREE from "three";
+			import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+			import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+			import { DRACOLoader } from "three/addons/loaders/DRACOLoader.js";
+			import { RGBELoader } from "three/addons/loaders/RGBELoader.js";
+			import { GUI } from "three/addons/libs/lil-gui.module.min.js";
+
+			const canvas = document.getElementById("c");
+			const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+			renderer.setSize(window.innerWidth, window.innerHeight);
+			renderer.outputEncoding = THREE.sRGBEncoding;
+
+			const scene = new THREE.Scene();
+			scene.background = new THREE.Color(0xdddddd);
+
+			const camera = new THREE.PerspectiveCamera(
+				60,
+				innerWidth / innerHeight,
+				0.1,
+				1000
+			);
+			camera.position.set(30, 30, 40);
+
+			const controls = new OrbitControls(camera, renderer.domElement);
+			controls.target.set(0, 2, 0);
+			controls.update();
+
+			scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+			const dir = new THREE.DirectionalLight(0xffffff, 0.8);
+			dir.position.set(10, 20, 10);
+			scene.add(dir);
+
+			const floor = new THREE.Mesh(
+				new THREE.PlaneGeometry(200, 200),
+				new THREE.MeshStandardMaterial({ color: 0x777777 })
+			);
+			floor.rotation.x = -Math.PI / 2;
+			scene.add(floor);
+
+			// Loaders (draco optional)
+			// const dracoLoader = new DRACOLoader();
+			// dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.6/');
+			const loader = new GLTFLoader();
+			// loader.setDRACOLoader(dracoLoader);
+
+			// Basic scene containers
+			const staticGroup = new THREE.Group();
+			const dynamicGroup = new THREE.Group();
+			scene.add(staticGroup, dynamicGroup);
+
+			// Simple index generator (simulate JSON index or scan server)
+			function makeIndex(numStatic = 100, numMove = 30) {
+				const arr = [];
+				for (let i = 0; i < numStatic; i++) {
+					arr.push({
+						name: `static_${String(i).padStart(3, "0")}`,
+						path: `/models/rusty_electric_box.glb`,
+						type: "static",
+					});
+				}
+				for (let i = 0; i < numMove; i++) {
+					const kind = i < 18 ? "agv" : "machine";
+					arr.push({
+						name: `move_${String(i).padStart(3, "0")}_${kind}`,
+						path: `models/rusty_electric_box.glb`,
+						type: "dynamic",
+						subkind: kind,
+					});
+				}
+				return arr;
+			}
+			const index = makeIndex(100, 30);
+
+			// Load with concurrency limiting
+			async function batchLoad(indexList, concurrency = 6) {
+				let i = 0;
+				const total = indexList.length;
+				const mixers = [];
+				const loaded = [];
+				async function worker() {
+					while (i < total) {
+						const idx = i++;
+						const meta = indexList[idx];
+						try {
+							const gltf = await loaderPromise(meta.path);
+							// clone scene or use gltf.scene directly
+							const root = gltf.scene;
+							root.name = meta.name;
+							if (meta.type === "static") {
+								staticGroup.add(root);
+								// Place statics randomly in warehouse area (avoid origin)
+								root.position.set(
+									(Math.random() - 0.5) * 80,
+									0,
+									(Math.random() - 0.5) * 80
+								);
+							} else {
+								dynamicGroup.add(root);
+								// initial positions for dynamic
+								root.position.set(
+									(Math.random() - 0.5) * 40,
+									0,
+									(Math.random() - 0.5) * 40
+								);
+								// store behavior metadata
+								root.userData.meta = meta;
+								if (gltf.animations && gltf.animations.length > 0) {
+									const mixer = new THREE.AnimationMixer(root);
+									const action = mixer.clipAction(gltf.animations[0]);
+									action.play();
+									mixers.push(mixer);
+								}
+							}
+							loaded.push(root);
+						} catch (err) {
+							console.error("load fail", meta.path, err);
+						}
+					}
+				}
+				// start workers
+				const workers = [];
+				for (let w = 0; w < concurrency; w++) workers.push(worker());
+				await Promise.all(workers);
+				return { loaded, mixers };
+			}
+
+			function loaderPromise(url) {
+				// wrapper to return Promise from GLTFLoader
+				return new Promise((resolve, reject) => {
+					loader.load(
+						url,
+						(gltf) => resolve(gltf),
+						undefined,
+						(err) => reject(err)
+					);
+				});
+			}
+
+			// Movement systems for dynamic models
+			const moveControllers = []; // each: {obj, type, params}
+			function initMovementFor(obj) {
+				const kind = obj.userData.meta ? obj.userData.meta.subkind : "agv";
+				if (kind === "agv") {
+					// patrol on a circle/ellipse
+					const radius = 5 + Math.random() * 20;
+					const speed = 0.3 + Math.random() * 0.8;
+					const phase = Math.random() * Math.PI * 2;
+					obj.userData.move = { type: "patrol", radius, speed, phase };
+					moveControllers.push(obj);
+				} else {
+					// rotating machine or random walk
+					if (Math.random() < 0.5) {
+						obj.userData.move = {
+							type: "spin",
+							speed: 0.5 + Math.random() * 2.0,
+						};
+						moveControllers.push(obj);
+					} else {
+						obj.userData.move = {
+							type: "random_walk",
+							speed: 0.5 + Math.random() * 1.5,
+							target: null,
+							cooldown: 0,
+						};
+						moveControllers.push(obj);
+					}
+				}
+			}
+
+			// tick update movements
+			const clock = new THREE.Clock();
+			let mixersAll = [];
+			async function start() {
+				const { loaded, mixers } = await batchLoad(index, 8);
+				mixersAll = mixers;
+				// for each dynamic add controller
+				loaded.forEach((o) => {
+					if (o.userData.meta && o.userData.meta.type === "dynamic") {
+						initMovementFor(o);
+					}
+				});
+				animate();
+			}
+			function animate() {
+				requestAnimationFrame(animate);
+				const dt = clock.getDelta();
+
+				// update mixers (GLTF keyframe animations)
+				mixersAll.forEach((m) => m.update(dt));
+
+				// update our custom movement controllers
+				const t = clock.getElapsedTime();
+				for (const obj of moveControllers) {
+					const m = obj.userData.move;
+					if (!m) continue;
+					if (m.type === "patrol") {
+						const ang = t * m.speed + m.phase;
+						const x = Math.cos(ang) * m.radius;
+						const z = Math.sin(ang) * m.radius;
+						obj.position.x = x;
+						obj.position.z = z;
+						// face direction tangent
+						obj.rotation.y = -ang + Math.PI / 2;
+					} else if (m.type === "spin") {
+						obj.rotation.y += m.speed * dt;
+					} else if (m.type === "random_walk") {
+						if (!m.target || m.cooldown <= 0) {
+							// pick new target
+							m.target = new THREE.Vector3(
+								(Math.random() - 0.5) * 40,
+								0,
+								(Math.random() - 0.5) * 40
+							);
+							m.cooldown = 3 + Math.random() * 5;
+						} else {
+							const dir = new THREE.Vector3().subVectors(
+								m.target,
+								obj.position
+							);
+							const dist = dir.length();
+							if (dist > 0.1) {
+								dir.normalize();
+								obj.position.addScaledVector(dir, m.speed * dt);
+								obj.rotation.y = Math.atan2(-dir.z, dir.x) + Math.PI / 2;
+							} else {
+								m.cooldown -= dt;
+								if (m.cooldown <= 0) m.target = null;
+							}
+						}
+					}
+				}
+
+				renderer.render(scene, camera);
+			}
+			start();
+
+			// resize
+			window.addEventListener("resize", () => {
+				renderer.setSize(window.innerWidth, window.innerHeight);
+				camera.aspect = window.innerWidth / window.innerHeight;
+				camera.updateProjectionMatrix();
+			});
+		</script>
+	</body>
+</html>
