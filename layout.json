@@ -1,0 +1,5 @@
+[
+  { "name": "Box_1", "position": [-10, 0, -15], "rotationY": 0, "color": "#ff0000" },
+  { "name": "Box_2", "position": [15, 0, 35], "rotationY": 0, "color": "#00ff00" },
+  { "name": "Box_3", "position": [12, 0, 30], "rotationY":0, "color": "#0000ff" }
+]
