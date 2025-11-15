@@ -1,0 +1,25 @@
+
+#PROXY FUYU
+npm config set registry http://registry.npmjs.org/
+npm config set proxy http://V1004581:8Rm4dYGt@10.220.3.16:3128
+npm config set https-proxy http://V1004581:8Rm4dYGt@10.220.3.16:3128
+
+#PROXY FULIAN
+npm config set registry http://registry.npmjs.org/
+npm config set proxy http://V1004581:Rivivu%4099@10.81.160.20:3128
+npm config set https-proxy http://V1004581:Rivivu%4099@10.81.160.20:3128
+
+
+pip config set registry https://pypi.org/
+pip config set global.proxy http://V1004581:Rivivu%4099@10.81.160.20:3128
+pip config set global.https-proxy http://V1004581:Rivivu%4099@10.81.160.20:3128
+
+
+git config --global http.proxy http://V1004581:Rivivu%4099@10.81.160.20:3128
+git config --global https.proxy http://V1004581:Rivivu%4099@10.81.160.20:3128
+git config --global --unset http.proxy
+git config --global --unset https.proxy
+
+
+10.81.160.20:3128
+10.224.*;*.efoxconn.com;10.220.*;*myfiinet.com*;*vngz*;10.72.*;*10.220.*;*vnmail.fii-foxconn.com*;*edu.foxconn.com*
