@@ -1,0 +1,77 @@
+g1. Xóa nhánh local
+git branch -d <tên nhánh>: chỉ xóa khi nhanh đã được merge vào nhánh khác
+git branch -D <tên nhánh>: xóa ngay lập tức mà không quan tâm đã merge hay chưa
+
+2.Xóa nhánh remote
+git push origin --delete <tên nhánh>
+
+//=============REMOTE===================
+3.Kiểm tra danh sách remote
+git remote -v
+
+4. Xóa một remote
+git remote remove <tên remote>
+
+5. Thêm một remote
+git remote add <tên remote> <url-remote>
+
+6. Sửa URL remote
+git remote set-url origin <url-remote>
+
+7. Sửa tên remote
+git remote rename <tên cũ> <tên mới>
+
+
+//=============STAGED===================
+8. Bỏ staged
+git restore --staged <tên file>: bỏ từng file
+git restore --staged . : bỏ toàn bộ file
+
+//=============COMMIT===================
+9. Thu hồi commit khi chưa push lên remote
+git reset --soft HEAD~1: thu hồi commit, giữ staged
+git reset HEAD~1: thu hồi commit giữ thay đổi không staged
+git reset --hard HEAD~1: thu hồi commit, xóa thay đổi
+
+10. Thu hồi commit khi đã push lên remote
+git revert <commit-hash>
+git push
+
+git reset --hard HEAD~1
+git push --force
+
+//=============STASH===================
+git stash: Lưu thay đổi vào stash
+git stash list: xem danh sách stash
+git stash pop: áp dụng và xóa
+git stash drop stash@{0}: xóa stash cụ thể
+git stash clear: xóa tất cả stash
+git stash apply: apply stash mới nhất
+git stash apply stash@:{0} apply stash cụ thể
+
+git pull origin main --allow-unrelated-histories
+
+git config --global http.proxy http://V1004581:Rivivu%4099@10.81.160.20:3128
+git config --global https.proxy http://V1004581:Rivivu%4099@10.81.160.20:3128
+git config --global --unset http.proxy
+git config --global --unset https.proxy
+
+git config --global credential.helper manager
+git config --global user.name "Tên của bạn"
+git config --global user.email "email@example.com"
+
+git credential-manager reject https://github.com --> xoa cache cu
+git credential-manager erase https://github.com
+
+git credential-manager erase https://fiisw-cns.myfiinet.com
+
+git config --global credential.helper store //Lưu lại thông tin
+
+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
+https://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@github.com/nhatnd220699/threejs-app.git 
+
+git credential-manager erase https://fiisw-cns.myfiinet.com
+git config --global --unset credential.helper
+
+
+
