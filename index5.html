@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Conveyor Smart UI</title>
+
+<style>
+* { box-sizing: border-box; }
+
+/* body {
+    margin: 0;
+    background: #0f172a;
+    font-family: sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+} */
+
+body {
+    margin: 0;
+    background: #0f172a;
+    font-family: sans-serif;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    height: 100vh;
+    overflow: hidden;
+}
+
+/* MAIN */
+.container {
+    position: relative;
+
+    /* Căn giữa thật */
+    transform: translateZ(0);
+
+    /* để auto size theo nội dung */
+    display: inline-block;
+}
+
+/* SVG */
+svg {
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+
+/* PATH */
+path {
+    fill: none;
+    stroke: #334155;
+    stroke-width: 10;
+    stroke-linejoin: round;
+}
+
+/* FLOW */
+.flow {
+    stroke: #38bdf8;
+    stroke-width: 3;
+    stroke-dasharray: 6 12;
+    animation: flow 1.5s linear infinite;
+}
+
+@keyframes flow {
+    to { stroke-dashoffset: -18; }
+}
+
+/* STATION */
+.station {
+    position: absolute;
+    width: 80px;
+    height: 42px;
+    background: #3b82f6;
+    border-radius: 10px;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* PRODUCT */
+.product {
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    background: orange;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    box-shadow: 0 0 10px orange;
+}
+
+/* TRAIL */
+.trail {
+    position: absolute;
+    width: 6px;
+    height: 6px;
+    background: orange;
+    border-radius: 50%;
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container" id="container">
+    <svg id="svg"></svg>
+    <div id="stations"></div>
+    <!-- <div class="product" id="product"></div> -->
+</div>
+
+<script>
+// CONFIG
+const totalStations = 60;
+const perRow = 10;
+const spacingX = 100;
+const spacingY = 120;
+const offset = 70;
+
+const container = document.getElementById("container");
+const svg = document.getElementById("svg");
+const stationWrap = document.getElementById("stations");
+
+// ===== BUILD GRID =====
+let stations = [];
+let d = "";
+
+let startX = 100;
+let startY = 100;
+
+let dir = 1;
+let rows = Math.ceil(totalStations / perRow);
+
+// // set svg size
+// svg.setAttribute("width", 1200);
+// svg.setAttribute("height", rows * spacingY + 200);
+
+
+const width = startX + perRow * spacingX + 200;
+const height = startY + rows * spacingY + 200;
+
+svg.setAttribute("width", width);
+svg.setAttribute("height", height);
+
+container.style.width = width + "px";
+container.style.height = height + "px";
+
+for (let row = 0; row < rows; row++) {
+
+    let y = startY + row * spacingY;
+
+    for (let col = 0; col < perRow; col++) {
+
+        let index = row * perRow + col;
+        if (index >= totalStations) break;
+
+        let x = startX + (dir === 1 ? col : (perRow - 1 - col)) * spacingX;
+
+        // create station
+        let el = document.createElement("div");
+        el.className = "station";
+        el.style.left = x + "px";
+        el.style.top = y + "px";
+        el.innerText = "S" + (index + 1);
+
+        stationWrap.appendChild(el);
+
+        stations.push({x,y});
+
+        if (index === 0) {
+            d += `M ${x} ${y}`;
+        } else {
+            d += ` L ${x} ${y}`;
+        }
+    }
+
+    // CONNECT TO NEXT ROW (VUÔNG GÓC)
+    if (row < rows - 1) {
+
+        let last = stations[stations.length - 1];
+        let nextY = y + spacingY;
+
+        if (dir === 1) {
+            d += `
+                L ${last.x + offset} ${y}
+                L ${last.x + offset} ${nextY}
+                L ${last.x} ${nextY}
+            `;
+        } else {
+            d += `
+                L ${last.x - offset} ${y}
+                L ${last.x - offset} ${nextY}
+                L ${last.x} ${nextY}
+            `;
+        }
+    }
+
+    dir *= -1;
+}
+
+// ===== DRAW PATH =====
+const base = document.createElementNS("http://www.w3.org/2000/svg", "path");
+base.setAttribute("d", d);
+
+const flow = document.createElementNS("http://www.w3.org/2000/svg", "path");
+flow.setAttribute("d", d);
+flow.setAttribute("class", "flow");
+
+svg.appendChild(base);
+svg.appendChild(flow);
+
+// // ===== PRODUCT =====
+// const product = document.getElementById("product");
+// const path = base;
+// const length = path.getTotalLength();
+
+// // TRAIL POOL
+// let trails = [];
+// for (let i = 0; i < 15; i++) {
+//     let t = document.createElement("div");
+//     t.className = "trail";
+//     document.body.appendChild(t);
+//     trails.push(t);
+// }
+
+// let trailIndex = 0;
+// let prog = 0;
+
+// // ===== ANIMATION =====
+// function animate() {
+
+//     prog += 1.5;
+//     if (prog > length) prog = 0;
+
+//     let pt = path.getPointAtLength(prog);
+
+//     product.style.left = pt.x + "px";
+//     product.style.top = pt.y + "px";
+
+//     // TRAIL REUSE
+//     let t = trails[trailIndex];
+//     t.style.left = pt.x + "px";
+//     t.style.top = pt.y + "px";
+//     t.style.opacity = 1;
+
+//     setTimeout(() => t.style.opacity = 0, 300);
+
+//     trailIndex = (trailIndex + 1) % trails.length;
+
+//     requestAnimationFrame(animate);
+// }
+
+animate();
+
+</script>
+
+</body>
+</html>
