@@ -1,264 +1,204 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-<meta charset="UTF-8">
-<title>Conveyor Smart UI</title>
+    <head>
+        <meta charset="UTF-8" />
+        <title>Conveyor Smart UI</title>
 
-<style>
-* { box-sizing: border-box; }
+        <style>
+            * {
+                box-sizing: border-box;
+                margin: 0;
+                padding: 0;
+            }
 
-/* body {
-    margin: 0;
-    background: #0f172a;
-    font-family: sans-serif;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
-} */
+            body {
+                margin: 0;
+                background: #0f172a;
+                font-family: sans-serif;
 
-body {
-    margin: 0;
-    background: #0f172a;
-    font-family: sans-serif;
+                display: flex;
+                justify-content: center;
+                align-items: center;
 
-    display: flex;
-    justify-content: center;
-    align-items: center;
+                /* height: 100vh;	
+                overflow: hidden; */
+            }
 
-    height: 100vh;
-    overflow: hidden;
-}
+            /* MAIN */
+            .container {
+                position: relative;
+                display: flex;
+                align-items: flex-start;
+                justify-content: center;
+                width: 80%;
+                border: 1px solid green;
+                transform-origin: top left;
+            }
 
-/* MAIN */
-.container {
-    position: relative;
+            /* SVG */
+            svg {
+                /* position: absolute;
+                top: 0;
+                left: 0; */
+                width: 100%;
+                height: auto;
+                display: block;
+            }
 
-    /* Căn giữa thật */
-    transform: translateZ(0);
+            /* PATH */
+            path {
+                fill: none;
+                stroke: #334155;
+                stroke-width: 10;
+                stroke-linejoin: round;
+            }
 
-    /* để auto size theo nội dung */
-    display: inline-block;
-}
+            /* FLOW */
+            .flow {
+                stroke: #38bdf8;
+                stroke-width: 3;
+                stroke-dasharray: 6 12;
+                animation: flow 1.5s linear infinite;
+            }
 
-/* SVG */
-svg {
-    position: absolute;
-    top: 0;
-    left: 0;
-}
+            @keyframes flow {
+                to {
+                    stroke-dashoffset: -18;
+                }
+            }
 
-/* PATH */
-path {
-    fill: none;
-    stroke: #334155;
-    stroke-width: 10;
-    stroke-linejoin: round;
-}
+            #stations {
+                position: absolute;
+                top: 0;
+                left: 0;
+            }
 
-/* FLOW */
-.flow {
-    stroke: #38bdf8;
-    stroke-width: 3;
-    stroke-dasharray: 6 12;
-    animation: flow 1.5s linear infinite;
-}
+            /* STATION */
+            .station {
+                position: absolute;
+                width: 100px;
+                height: 42px;
+                background: #3b82f6;
+                border-radius: 10px;
 
-@keyframes flow {
-    to { stroke-dashoffset: -18; }
-}
+                display: flex;
+                align-items: center;
+                justify-content: center;
 
-/* STATION */
-.station {
-    position: absolute;
-    width: 80px;
-    height: 42px;
-    background: #3b82f6;
-    border-radius: 10px;
-    transform: translate(-50%, -50%);
-    text-align: center;
-    font-size: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
+                font-size: 12px;
+                color: white;
 
-/* PRODUCT */
-.product {
-    position: absolute;
-    width: 12px;
-    height: 12px;
-    background: orange;
-    border-radius: 50%;
-    transform: translate(-50%, -50%);
-    box-shadow: 0 0 10px orange;
-}
+                transform: translate(-50%, -50%); /* 👈 QUAN TRỌNG */
+            }
+        </style>
+    </head>
 
-/* TRAIL */
-.trail {
-    position: absolute;
-    width: 6px;
-    height: 6px;
-    background: orange;
-    border-radius: 50%;
-    opacity: 0;
-    transition: opacity 0.3s;
-}
-</style>
-</head>
+    <body>
+        <div class="container" id="container">
+            <svg id="svg"></svg>
+            <div id="stations"></div>
+        </div>
 
-<body>
+        <script>
+            // CONFIG
+            const totalStations = 44;
+            const perRow = 8;
+            const spacingX = 150;
+            const spacingY = 120;
+            const offset = 50;
+            const padding = 22;
 
-<div class="container" id="container">
-    <svg id="svg"></svg>
-    <div id="stations"></div>
-    <!-- <div class="product" id="product"></div> -->
-</div>
+            const container = document.getElementById("container");
+            const svg = document.getElementById("svg");
+            const stationWrap = document.getElementById("stations");
 
-<script>
-// CONFIG
-const totalStations = 60;
-const perRow = 10;
-const spacingX = 100;
-const spacingY = 120;
-const offset = 70;
+            // ===== BUILD GRID =====
+            let stations = [];
+            let d = "";
 
-const container = document.getElementById("container");
-const svg = document.getElementById("svg");
-const stationWrap = document.getElementById("stations");
+            let startX = offset + padding;
+            let startY = padding + 25;
 
-// ===== BUILD GRID =====
-let stations = [];
-let d = "";
+            let dir = 1;
+            let rows = Math.ceil(totalStations / perRow);
 
-let startX = 100;
-let startY = 100;
+            const width = (perRow - 1) * spacingX + offset * 2 + padding * 2;
+            const height = rows * spacingY + padding * 2;
 
-let dir = 1;
-let rows = Math.ceil(totalStations / perRow);
+            svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
 
-// // set svg size
-// svg.setAttribute("width", 1200);
-// svg.setAttribute("height", rows * spacingY + 200);
+            for (let row = 0; row < rows; row++) {
+                let y = startY + row * spacingY;
 
+                for (let col = 0; col < perRow; col++) {
+                    let index = row * perRow + col;
+                    if (index >= totalStations) break;
 
-const width = startX + perRow * spacingX + 200;
-const height = startY + rows * spacingY + 200;
+                    let x = startX + (dir === 1 ? col : perRow - 1 - col) * spacingX;
 
-svg.setAttribute("width", width);
-svg.setAttribute("height", height);
+                    // create station
+                    let el = document.createElement("div");
+                    el.className = "station";
+                    el.style.left = x + "px";
+                    el.style.top = y + "px";
+                    el.innerText = "S" + (index + 1);
 
-container.style.width = width + "px";
-container.style.height = height + "px";
+                    stationWrap.appendChild(el);
 
-for (let row = 0; row < rows; row++) {
+                    stations.push({ x, y });
 
-    let y = startY + row * spacingY;
+                    if (index === 0) {
+                        d += `M ${x} ${y}`;
+                    } else {
+                        d += ` L ${x} ${y}`;
+                    }
+                }
 
-    for (let col = 0; col < perRow; col++) {
+                // CONNECT TO NEXT ROW (VUÔNG GÓC)
+                if (row < rows - 1) {
+                    let last = stations[stations.length - 1];
+                    let nextY = y + spacingY;
 
-        let index = row * perRow + col;
-        if (index >= totalStations) break;
+                    if (dir === 1) {
+                        d += `
+							L ${last.x + offset} ${y}
+							L ${last.x + offset} ${nextY}
+							L ${last.x} ${nextY}
+						`;
+                    } else {
+                        d += `
+							L ${last.x - offset} ${y}
+							L ${last.x - offset} ${nextY}
+							L ${last.x} ${nextY}
+						`;
+                    }
+                }
 
-        let x = startX + (dir === 1 ? col : (perRow - 1 - col)) * spacingX;
+                dir *= -1;
+            }
 
-        // create station
-        let el = document.createElement("div");
-        el.className = "station";
-        el.style.left = x + "px";
-        el.style.top = y + "px";
-        el.innerText = "S" + (index + 1);
+            // ===== DRAW PATH =====
+            const base = document.createElementNS("http://www.w3.org/2000/svg", "path");
+            base.setAttribute("d", d);
 
-        stationWrap.appendChild(el);
+            const flow = document.createElementNS("http://www.w3.org/2000/svg", "path");
+            flow.setAttribute("d", d);
+            flow.setAttribute("class", "flow");
 
-        stations.push({x,y});
+            svg.appendChild(base);
+            svg.appendChild(flow);
 
-        if (index === 0) {
-            d += `M ${x} ${y}`;
-        } else {
-            d += ` L ${x} ${y}`;
-        }
-    }
+            function scaleStations() {
+                const svgRect = svg.getBoundingClientRect();
 
-    // CONNECT TO NEXT ROW (VUÔNG GÓC)
-    if (row < rows - 1) {
+                const scale = svgRect.width / width;
 
-        let last = stations[stations.length - 1];
-        let nextY = y + spacingY;
+                stationWrap.style.transform = `scale(${scale})`;
+                stationWrap.style.transformOrigin = "top left";
+            }
 
-        if (dir === 1) {
-            d += `
-                L ${last.x + offset} ${y}
-                L ${last.x + offset} ${nextY}
-                L ${last.x} ${nextY}
-            `;
-        } else {
-            d += `
-                L ${last.x - offset} ${y}
-                L ${last.x - offset} ${nextY}
-                L ${last.x} ${nextY}
-            `;
-        }
-    }
-
-    dir *= -1;
-}
-
-// ===== DRAW PATH =====
-const base = document.createElementNS("http://www.w3.org/2000/svg", "path");
-base.setAttribute("d", d);
-
-const flow = document.createElementNS("http://www.w3.org/2000/svg", "path");
-flow.setAttribute("d", d);
-flow.setAttribute("class", "flow");
-
-svg.appendChild(base);
-svg.appendChild(flow);
-
-// // ===== PRODUCT =====
-// const product = document.getElementById("product");
-// const path = base;
-// const length = path.getTotalLength();
-
-// // TRAIL POOL
-// let trails = [];
-// for (let i = 0; i < 15; i++) {
-//     let t = document.createElement("div");
-//     t.className = "trail";
-//     document.body.appendChild(t);
-//     trails.push(t);
-// }
-
-// let trailIndex = 0;
-// let prog = 0;
-
-// // ===== ANIMATION =====
-// function animate() {
-
-//     prog += 1.5;
-//     if (prog > length) prog = 0;
-
-//     let pt = path.getPointAtLength(prog);
-
-//     product.style.left = pt.x + "px";
-//     product.style.top = pt.y + "px";
-
-//     // TRAIL REUSE
-//     let t = trails[trailIndex];
-//     t.style.left = pt.x + "px";
-//     t.style.top = pt.y + "px";
-//     t.style.opacity = 1;
-
-//     setTimeout(() => t.style.opacity = 0, 300);
-
-//     trailIndex = (trailIndex + 1) % trails.length;
-
-//     requestAnimationFrame(animate);
-// }
-
-animate();
-
-</script>
-
-</body>
+            window.addEventListener("resize", scaleStations);
+            scaleStations();
+        </script>
+    </body>
 </html>
