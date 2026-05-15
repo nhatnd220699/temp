@@ -1,210 +1,201 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<title>Conveyor Smart UI</title>
+    <meta charset="UTF-8" />
+    <title>Conveyor Smart UI</title>
 
-<style>
-* { box-sizing: border-box; margin: 0; padding: 0; }
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
 
-body {
-    background: #0f172a;
-    font-family: sans-serif;
-    display: flex;
-    justify-content: center;
-}
+        body {
+            background: #0f172a;
+            font-family: system-ui,sans-serif;
+        }
 
-.container {
-    width: 80%;
-    position: relative;
-}
+        .container {
+            position: relative;
+            width: 100%;
+            overflow: auto;
+        }
 
-svg {
-    width: 100%;
-}
+        svg {
+            width: 100%;
+            height: auto;
+        }
 
-path {
-    fill: none;
-    stroke: #334155;
-    stroke-width: 10;
-    stroke-linejoin: round;
-}
+        path {
+            fill: none;
+            stroke: #334155;
+            stroke-width: 10;
+            stroke-linejoin: round;
+        }
 
-.flow {
-    stroke: #38bdf8;
-    stroke-width: 3;
-    stroke-dasharray: 6 12;
-    animation: flow 1.5s linear infinite;
-}
+        .flow {
+            stroke: #38bdf8;
+            stroke-width: 3;
+            stroke-dasharray: 6 12;
+            animation: flow 2s linear infinite;
+        }
 
-@keyframes flow {
-    to { stroke-dashoffset: -18; }
-}
+        @keyframes flow {
+            to {
+                stroke-dashoffset: -18;
+            }
+        }
 
-#stations {
-    position: absolute;
-    top: 0;
-    left: 0;
-    transform-origin: top left;
-}
+        #stations {
+            position: absolute;
+            top: 0;
+            left: 0;
+            transform-origin: top left;
+        }
 
-.station {
-    position: absolute;
-    width: 120px;
-    height: 42px;
-    background: #3b82f6;
-    border-radius: 10px;
-    color: white;
-    font-size: 12px;
-
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    transform: translate(-50%, -50%);
-}
-</style>
+        .station {
+            position: absolute;
+            width: 120px;
+            height: 42px;
+            background: #3b82f6;
+            border-radius: 10px;
+            color: #fff;
+            font-size: 14px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transform: translate(-50%,-50%);
+            white-space: nowrap;
+        }
+    </style>
 </head>
 
 <body>
-<div class="container">
-    <svg id="svg"></svg>
-    <div id="stations"></div>
-</div>
+    <div class="container">
+        <svg id="svg"></svg>
+        <div id="stations"></div>
+    </div>
 
-<script>
-// CONFIG
-const totalStations = 44;
-const perRow = 8;
-const maxPerRow = 10;
+    <script>
+        /* =======================================================
+           CONFIG
+           ======================================================= */
+        const totalStations = 103;
 
-const spacingX = 130;
-const spacingY = 150;
-const offset = 80;
-const padding = 40;
+        /*
+          Mỗi phần tử là số item của 1 line
+          👉 bạn đổi tùy ý, UI KHÔNG BAO GIỜ BROKEN
+        */
+        const rowPattern = [6, 6, 6, 6, 6, 6];
 
-const svg = document.getElementById("svg");
-const stationWrap = document.getElementById("stations");
+        const spacingX = 150;
+        const spacingY = 120;
+        const offsetX = 120;
+        const offsetY = 80;
+        const bend = 90;
 
-let d = "";
-let startX = padding + offset;
-let startY = padding;
+        /* =======================================================
+           PREPARE DATA
+           ======================================================= */
+        const svg = document.getElementById("svg");
+        const stations = document.getElementById("stations");
 
-let dir = 1;
-let rows = Math.ceil(totalStations / perRow);
+        let rows = [];
+        let counter = 1;
 
-const width = (maxPerRow - 1) * spacingX + offset * 2 + padding * 2;
-const height = rows * spacingY + padding * 2;
+        while (counter <= totalStations) {
+            for (const n of rowPattern) {
+                let row = [];
+                for (let i = 0; i < n && counter <= totalStations; i++) {
+                    row.push(counter++);
+                }
+                rows.push(row);
+                if (counter > totalStations) break;
+            }
+        }
 
-svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
+        /* =======================================================
+           SIZE SVG
+           ======================================================= */
+        const maxCols = Math.max(...rows.map(r => r.length));
+        const width = offsetX * 2 + (maxCols - 1) * spacingX;
+        const height = offsetY * 2 + (rows.length - 1) * spacingY;
 
-// 🔥 lưu vị trí từng dòng
-let rowPositions = [];
-let rowDirs = [];
+        svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
 
-for (let row = 0; row < rows; row++) {
+        /* =======================================================
+           HELPERS
+           ======================================================= */
+        function buildRowX(count) {
+            return Array.from({ length: count }, (_, i) =>
+                offsetX + i * spacingX
+            );
+        }
 
-    let y = startY + row * spacingY;
-    let countInRow = Math.min(perRow, totalStations - row * perRow);
+        /* =======================================================
+           DRAW STATIONS + PATH
+           ======================================================= */
+        let d = "";
+        let dir = 1;
 
-    const safeMargin = offset * 0.6;
+        rows.forEach((row, rowIndex) => {
+            const y = offsetY + rowIndex * spacingY;
 
-    let minX = startX + safeMargin;
-    let maxX = startX + (maxPerRow - 1) * spacingX - safeMargin;
+            const xs = buildRowX(row.length);
+            const useX = dir === 1 ? xs : [...xs].reverse();
 
-    let step = countInRow > 1 ? (maxX - minX) / (countInRow - 1) : 0;
+            useX.forEach((x, i) => {
+                const el = document.createElement("div");
+                el.className = "station";
+                el.style.left = x + "px";
+                el.style.top = y + "px";
+                el.textContent = "S" + row[i];
+                stations.appendChild(el);
 
-    const isLastRow = row === rows - 1;
+                if (d === "") d = `M ${x} ${y}`;
+                else d += ` L ${x} ${y}`;
+            });
 
-    // 🔥 hướng thực tế
-    let actualDir = isLastRow && rowDirs.length > 0
-        ? -rowDirs[rowDirs.length - 1]
-        : dir;
+            // connect to next row
+            if (rowIndex < rows.length - 1) {
+                const edgeX = useX[useX.length - 1];
+                const nextY = y + spacingY;
 
-    let currentRowX = [];
-
-    for (let col = 0; col < countInRow; col++) {
-
-        let index = row * perRow + col;
-        let x;
-
-        // ✅ FIX: dòng cuối align theo dòng trên
-        if (isLastRow && rowPositions.length > 0) {
-
-            let prevRow = rowPositions[rowPositions.length - 1];
-
-            if (actualDir === 1) {
-                x = prevRow[col];
-            } else {
-                x = prevRow[prevRow.length - 1 - col];
+                d += `
+                  L ${edgeX + dir * bend} ${y}
+                  L ${edgeX + dir * bend} ${nextY}
+                  L ${edgeX} ${nextY}
+                `;
             }
 
-        } else {
-            x = actualDir === 1
-                ? minX + col * step
-                : maxX - col * step;
+            dir *= -1;
+        });
+
+        /* =======================================================
+           SVG PATH
+           ======================================================= */
+        const base = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        base.setAttribute("d", d);
+
+        const flow = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        flow.setAttribute("d", d);
+        flow.setAttribute("class", "flow");
+
+        svg.appendChild(base);
+        svg.appendChild(flow);
+
+        /* =======================================================
+           SCALE STATIONS TO SVG
+           ======================================================= */
+        function scaleStations() {
+            const rect = svg.getBoundingClientRect();
+            const scale = rect.width / width;
+            stations.style.transform = `scale(${scale})`;
         }
-
-        currentRowX.push(x);
-
-        // render station
-        let el = document.createElement("div");
-        el.className = "station";
-        el.style.left = x + "px";
-        el.style.top = y + "px";
-        el.innerText = "S" + (index + 1);
-        stationWrap.appendChild(el);
-
-        // path
-        if (index === 0) d += `M ${x} ${y}`;
-        else d += ` L ${x} ${y}`;
-    }
-
-    rowPositions.push(currentRowX);
-    rowDirs.push(actualDir);
-
-    // nối xuống dòng
-    if (row < rows - 1) {
-
-        let lastX = actualDir === 1 ? maxX : minX;
-        let nextY = y + spacingY;
-
-        if (actualDir === 1) {
-            d += ` L ${lastX + offset} ${y}
-                   L ${lastX + offset} ${nextY}
-                   L ${lastX} ${nextY}`;
-        } else {
-            d += ` L ${lastX - offset} ${y}
-                   L ${lastX - offset} ${nextY}
-                   L ${lastX} ${nextY}`;
-        }
-    }
-
-    dir *= -1;
-}
-
-// DRAW
-const base = document.createElementNS("http://www.w3.org/2000/svg", "path");
-base.setAttribute("d", d);
-
-const flow = document.createElementNS("http://www.w3.org/2000/svg", "path");
-flow.setAttribute("d", d);
-flow.setAttribute("class", "flow");
-
-svg.appendChild(base);
-svg.appendChild(flow);
-
-// SCALE
-function scaleStations() {
-    const svgRect = svg.getBoundingClientRect();
-    let scale = svgRect.width / width;
-    scale = Math.max(scale, 0.5);
-    stationWrap.style.transform = `scale(${scale})`;
-}
-
-window.addEventListener("resize", scaleStations);
-scaleStations();
-
-</script>
+        window.addEventListener("resize", scaleStations);
+        scaleStations();
+    </script>
 </body>
 </html>
