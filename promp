@@ -1,0 +1,206 @@
+
+Đóng vai trò là một chuyên gia thiết kế UI/UX Desktop và kiến trúc sư Dashboard doanh nghiệp (Bootstrap).
+
+Hãy thiết kế một Dashboard Giám sát và Cảnh báo (Monitoring & Alert Dashboard) hiện đại, chuyên nghiệp dành cho đội ngũ DBA, vận hành hệ thống và hỗ trợ kỹ thuật. Dashboard này có nhiệm vụ giám sát sức khỏe hệ thống, phát hiện sự cố, thống kê dữ liệu và hỗ trợ xử lý cảnh báo một cách nhanh chóng, hiệu quả.
+
+Yêu cầu chi tiết:
+
+1. Thiết kế Responsive
+
+- Giao diện phải hiển thị tốt trên nhiều loại thiết bị:
+  - Desktop
+  - Laptop
+  - Tablet
+  - Màn hình giám sát lớn (TV/Monitoring Screen)
+
+- Các thành phần giao diện phải có khả năng tự động co giãn và sắp xếp lại phù hợp với từng độ phân giải màn hình.
+- Đảm bảo tính nhất quán về trải nghiệm người dùng trên mọi thiết bị.
+
+2. Giao diện hiện đại và chuyên nghiệp
+
+- Thiết kế theo phong cách Dashboard doanh nghiệp hiện đại.
+- Giao diện trực quan, thân thiện và dễ sử dụng.
+- Bố cục cần được sắp xếp khoa học, rõ ràng, phù hợp với các loại dữ liệu giám sát và cảnh báo.
+- Ưu tiên hiển thị các cảnh báo quan trọng để người dùng dễ dàng nhận biết và xử lý.
+- Hỗ trợ điều hướng nhanh và giảm thiểu thao tác tìm kiếm thông tin.
+- Đảm bảo khả năng theo dõi hệ thống 24/7 trong môi trường vận hành thực tế.
+
+3. Danh mục giám sát và cảnh báo
+
+Dashboard cần cung cấp khả năng giám sát, thống kê và cảnh báo cho các nhóm dữ liệu sau:
+
+A. Kiểm tra danh sách thủ tục bị lỗi (stored procedure)
+Các cột thông tin:
+- Server name
+- Database name
+- System name
+- Station
+- Step
+- Content
+- TransDateTime
+- SendFlag(Y/N)
+
+B. Kiểm tra Job
+Mô tả: kiểm tra xem có job nào bị lỗi hay không?
+Các cột thông tin:
+- Server name
+- Database name
+- Job name
+- Step name
+- Run status
+- Run date
+- Run time
+- Run duration
+- Message
+
+C. Check database lock
+Mô tả: Kiểm tra danh sách deadlock xảy ra trong database.
+Các cột thông tin:
+- Lock type
+- Message
+- SPID_1
+- SPID_2
+- Event type
+- EventType
+- EventInfo
+- IndividualQuery
+- TransDateTime
+- AppName
+- HostName
+
+D. Kiểm tra sức khỏe Database (Always on)
+Mô tả: cho biết trạng thái của các database thế nào.
+Các cột thông tin:
+- replica_server_name
+- role_desc
+- connected_state_desc
+- synchronization_state_desc
+- synchronization_health_desc
+- log_send_queue_size
+- redo_queue_size
+- log_send_rate
+- redo_rate
+
+E. Disk Space & Storage
+- Dung lượng ổ đĩa
+- Dung lượng còn trống
+- Tỷ lệ sử dụng Storage
+- Xu hướng tăng trưởng dung lượng
+- Cảnh báo khi vượt ngưỡng cấu hình
+
+F. Kiểm tra bảng lớn (Table size)
+Mô tả: cho biết danh sách các bảng lớn trên 2500000 bản ghi và dung lượng của từng bảng.
+Các cột thông tin:
+- Server name
+- Database name
+- Schema name
+- Table name
+- Total rows
+
+G. Kiểm tra tập tin BACKUP
+Mô tả: cho biết tình trạng các backup của database như thế nào?
+Các cột thông tin:
+- Server name
+- Database name
+- Tập tin Log
+- Tập tin Diff
+- Tập tin Full
+
+4. Hỗ trợ giám sát theo khu vực
+
+Dashboard phải hỗ trợ 03 khu vực vận hành:
+
+- FATP (mặc định hiển thị đầu tiên)
+- CR
+- SMT
+
+Yêu cầu:
+
+- Cả 03 khu vực sử dụng chung một bộ tiêu chí giám sát và cảnh báo.
+- Cho phép chuyển đổi nhanh giữa:
+  - FATP (mặc định hiển thị, người dùng có thể tự đổi sang CR hoặc FATP sau)
+  - CR
+  - SMT
+
+- Hỗ trợ theo dõi theo từng khu vực riêng biệt.
+- Hiển thị số lượng cảnh báo và tình trạng hệ thống theo từng khu vực.
+
+5. Màu sắc và nhận diện trạng thái
+
+Sử dụng hệ thống màu sắc trực quan, phù hợp với Dashboard giám sát:
+
+- Xanh lá (Green): Hoạt động bình thường (Healthy)
+- Vàng (Yellow): Cảnh báo (Warning)
+- Đỏ (Red): Sự cố nghiêm trọng (Critical)
+- Xanh dương (Blue): Thông tin thống kê hoặc dữ liệu tổng hợp
+- Xám (Gray): Không có dữ liệu hoặc trạng thái chưa xác định
+
+Thiết kế cần giúp người dùng nhận biết tình trạng hệ thống chỉ trong vài giây quan sát.
+
+6. Trực quan hóa dữ liệu
+
+Dashboard cần sử dụng các biểu đồ và thành phần trực quan nhằm tăng khả năng phân tích dữ liệu:
+
+Biểu đồ Donut/Pie:
+Tỉ lệ phần trăm các loại lỗi
+
+
+7. Đề xuất bố cục Dashboard
+
+Header:
+- Logo
+- Tên Dashboard
+- Thời gian cập nhật cuối
+- Thông tin người dùng
+
+Khu vực KPI tổng quan:
+- Tổng số cảnh báo
+- Số cảnh báo Critical
+- Số cảnh báo Warning
+- Số hệ thống Healthy
+- Tổng số SQL Server
+
+Bộ lọc khu vực:
+- FATP
+- CR
+- SMT
+
+Khu vực nội dung chính:
+
+Hàng 1:
+- Tổng quan tỷ lệ các loại lỗi (Donut Chart)
+- Phân tích Disk Space & Storage
+
+Hàng 2:
+- Trạng thái Always On Availability Group
+- Phân tích Table Growth
+
+Hàng 3:
+- Danh sách thủ lục lỗi
+- Tình trạng file backup
+
+Hàng 4:
+- Danh sách deadlock & dblock
+
+8. Mục tiêu thiết kế
+
+- Cung cấp khả năng quan sát toàn hệ thống trên một màn hình duy nhất.
+- Giúp phát hiện nhanh các sự cố nghiêm trọng.
+- Tối ưu cho môi trường giám sát và vận hành 24/7.
+- Tách biệt rõ ràng các nhóm giám sát.
+- Hiển thị dữ liệu trực quan, dễ hiểu và dễ phân tích.
+- Hạn chế sự rối mắt nhưng vẫn cung cấp đầy đủ thông tin quan trọng.
+- Đảm bảo tính hiện đại, chuyên nghiệp và phù hợp với môi trường doanh nghiệp lớn.
+
+Hãy đề xuất một thiết kế Dashboard hoàn chỉnh bao gồm:
+- Wireframe tổng thể.
+- Cấu trúc bố cục (Layout).
+- Hierarchy của các thành phần.
+- Hệ thống màu sắc.
+- Thiết kế thẻ KPI (KPI Cards).
+- Vị trí và loại biểu đồ phù hợp.
+- Hệ thống icon.
+- Hành vi responsive trên các kích thước màn hình khác nhau.
+- Các nguyên tắc UI/UX và Dashboard Design Best Practices dành cho hệ thống Monitoring & Alert Management.
+
+(Lưu ý: sử dụng thư viện bootstrap hỗ trợ thiết kế giao diện)
